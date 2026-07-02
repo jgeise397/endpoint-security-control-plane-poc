@@ -1,0 +1,29 @@
+# Every real fleet has this box: too important to unplug today, too old to let pretend it meets the baseline.
+# The mature move is documented ownership, compensating controls, and a retirement date, not pretending the baseline applies.
+
+endpoint: win-legacy-01
+business_owner: Line-of-business application owner
+technical_owner: Endpoint engineering
+exception_reason: >
+  Runs a vendor-abandoned Win32 claims-rating application with a hard dependency on an embedded Internet Explorer control, a 32-bit ODBC driver, and a file-spooling module that fails when Defender real-time scanning locks its working directory.
+affected_controls:
+  - browser_not_outdated
+  - defender_realtime_on
+compensating_controls:
+  - id: network_isolation
+    description: Endpoint is placed on a lab segment that can reach only the application database simulator, Fleet, Wazuh, and update mirrors required for evidence collection.
+    verified_by: Endpoint-scoped Fleet policy plus lab network configuration; exercised in the RDP drift scenario
+  - id: inbound_restriction
+    description: Host firewall allows no inbound traffic except the management paths documented for the lab scenario.
+    verified_by: Fleet policy firewall_enabled plus an endpoint-scoped inbound-rules check
+  - id: rdp_disabled_default
+    description: RDP remains disabled by default; any break-glass enablement is scenario-scoped and must be closed during remediation.
+    verified_by: Fleet policy rdp_disabled
+  - id: reduced_local_admin
+    description: Local Administrators membership is limited to the endpoint engineering break-glass group and the built-in Administrator account remains disabled.
+    verified_by: Fleet policy local_admins_baseline
+risk_acceptance_status: accepted
+accepted_date: 2026-07-02
+review_date: 2026-10-01 # Quarterly because legacy exceptions decay fast; annual review is where these boxes go to become folklore.
+retirement_plan: >
+  Target migration is a supported browser-based workflow backed by the replacement claims platform in the lab roadmap. The trigger condition is either successful parity testing for the three rating paths used in this POC or vendor confirmation that the current dependency chain cannot be isolated further. Until then, the box remains constrained, noisy, and explicitly owned; uncertainty is documented here because pretending the date is guaranteed would be theater.

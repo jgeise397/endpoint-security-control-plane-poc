@@ -1,0 +1,52 @@
+# Endpoint persona metadata for the five-node lab fleet.
+# The Python risk model joins on this file by hostname before it scores posture drift and scenario evidence.
+# Persona, criticality, and exposure stay separate because a dev box is not risky because the developer is careless; it is risky because of what it can reach and what runs on it.
+
+win-user-01:
+  persona: standard_user
+  os: windows
+  criticality: medium
+  exposure: normal
+  persona_risk: 0.32 # Browser, mail, and document handling are real exposure, but no admin tooling or source access is expected here.
+  legacy_multiplier: 1.0 # No legacy exception; this endpoint should meet the normal Windows baseline.
+  compensating_controls: []
+
+win-dev-01:
+  persona: developer
+  os: windows
+  criticality: high
+  exposure: elevated
+  persona_risk: 0.72 # Local tooling, package managers, debug privileges, and repo access make drift more consequential than on an office endpoint.
+  legacy_multiplier: 1.0 # Modern Windows developer workstation; exceptions need evidence, not vibes.
+  compensating_controls: []
+
+mac-user-01:
+  persona: creative_user
+  os: macos
+  criticality: medium
+  exposure: normal
+  persona_risk: 0.46 # Creative workflows bring plugins, large file exchange, and browser-heavy SaaS use; the risk is software sprawl, not magic Apple immunity.
+  legacy_multiplier: 1.0 # Enrolled posture-read endpoint with no legacy carve-out.
+  compensating_controls: []
+
+ubuntu-dev-01:
+  persona: developer_linux
+  os: linux
+  criticality: high
+  exposure: elevated
+  persona_risk: 0.76 # SSH, containers, language runtimes, and build secrets are the attack surface that matters on a Linux dev box.
+  legacy_multiplier: 1.0 # Linux developer endpoint still gets the current baseline.
+  compensating_controls: []
+
+win-legacy-01:
+  persona: legacy_business_critical
+  os: windows
+  criticality: high
+  exposure: constrained
+  persona_risk: 0.58 # The user behavior is narrow, but the business blast radius is ugly if the box becomes unavailable or trusted too far.
+  legacy_multiplier: 1.25 # Twenty-five percent uplift is enough to keep the exception visible without drowning out verified compensating controls.
+  compensating_controls:
+    - network_isolation
+    - inbound_restriction
+    - rdp_disabled_default
+    - reduced_local_admin

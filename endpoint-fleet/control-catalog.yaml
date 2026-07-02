@@ -1,0 +1,162 @@
+# Control catalog for lab endpoint posture checks that will become Fleet/osquery policies later.
+# Controls are here because their failure tells a story: someone changed a service, deferred a baseline, installed risky software, or allowed the endpoint to drift.
+# The asymmetry is deliberate; endpoint security is not improved by giving every OS the same checklist-shaped hat.
+
+windows:
+  - id: firewall_enabled
+    title: Windows Firewall is enabled
+    check: Assert that the Windows Firewall profiles are enabled for the endpoint's active network context.
+    rationale: A disabled host firewall is usually not a theoretical finding. It means troubleshooting, local admin behavior, or weak build hygiene punched a hole in the last line of endpoint segmentation.
+    drift_signal: The endpoint may have been relaxed for testing, legacy connectivity, or unmanaged software that could not tolerate normal filtering.
+
+  - id: defender_realtime_on
+    title: Microsoft Defender real-time protection is on
+    check: Assert that Defender real-time protection is enabled and not suppressed by policy or local configuration.
+    rationale: Real-time protection is table stakes on this Windows lab. If it is off, the interesting question is who or what got enough authority to turn it off.
+    drift_signal: Local tampering, failed policy enforcement, or an operator disabling protection to get a noisy workload running.
+
+  - id: bitlocker_os_volume
+    title: BitLocker protects the OS volume
+    check: Assert that the operating system volume is encrypted with BitLocker and protection is active.
+    rationale: Disk encryption is boring until a laptop walks away. This control earns its place because loss scenarios do not care how elegant the EDR dashboard looks.
+    drift_signal: The endpoint was rebuilt outside the baseline, encryption was suspended and never resumed, or hardware state changed without follow-through.
+
+  - id: local_admins_baseline
+    title: Local Administrators group matches baseline
+    check: Assert that local Administrators membership matches the approved host-specific baseline.
+    rationale: Local admin drift is one of the cleanest signals that endpoint ownership is getting sloppy. Extra admins turn one helpdesk exception into a durable privilege problem.
+    drift_signal: A support session, developer request, or emergency workaround left a user or group with standing local admin rights.
+
+  - id: rdp_disabled
+    title: Remote Desktop is disabled
+    check: Assert that RDP is disabled unless an endpoint-specific exception policy says otherwise.
+    rationale: RDP is useful, familiar, and repeatedly abused. In a five-endpoint POC, it should be closed by default and opened only with a paper trail.
+    drift_signal: Remote access was enabled for convenience, legacy operations, or troubleshooting and did not get closed during cleanup.
+
+  - id: sysmon_running
+    title: Sysmon service is present and running
+    check: Assert that Sysmon is installed and the service is running.
+    rationale: Sysmon gives the Windows side of the lab enough process and network detail to make drift scenarios explainable. Without it, the timeline gets thin fast.
+    drift_signal: Telemetry was never deployed, the service crashed, or a local change removed an important evidence source.
+
+  - id: wazuh_agent_present
+    title: Wazuh agent is present
+    check: Assert that the Wazuh agent package and service are present on the endpoint.
+    rationale: Fleet tells us posture; Wazuh helps preserve the security-event trail. Losing the agent is a visibility outage, not a cosmetic failure.
+    drift_signal: The endpoint was rebuilt without the agent, enrollment failed, or endpoint software was removed during troubleshooting.
+
+  - id: screen_lock_enforced
+    title: Screen lock is enforced
+    check: Assert that an automatic screen lock timeout is configured and cannot be disabled by the user.
+    rationale: Console access still matters in labs and offices. The control is simple, but failures usually mean baseline enforcement is optional in practice.
+    drift_signal: Local policy drift, user override, or an unmanaged profile replaced the expected lock configuration.
+
+  - id: no_high_risk_software
+    title: No known high-risk software is present
+    check: Assert that installed applications do not include the lab's denylisted remote access, unsigned utility, or abandoned software entries.
+    rationale: This is not a moral judgment on tools. It is a check for software with a track record of becoming the fastest path around the endpoint program.
+    drift_signal: A user installed convenienceware, a vendor bundle brought extra baggage, or an old tool survived rebuild cleanup.
+
+  - id: browser_not_outdated
+    title: Browser is not outdated
+    check: Assert that managed browsers are within the approved version window for the lab baseline.
+    rationale: Browsers are where a normal endpoint meets the internet. An outdated browser on a business-critical box is a gift with a bow on it.
+    drift_signal: Patch deferral, failed auto-update, unsupported OS constraints, or an application dependency pinning an old browser runtime.
+
+macos:
+  - id: filevault_on
+    title: FileVault is on
+    check: Assert that FileVault is enabled for the macOS system volume.
+    rationale: The macOS endpoint is still an endpoint, not a talisman. FileVault keeps loss of the workstation from becoming loss of local data.
+    drift_signal: Enrollment missed the encryption profile, FileVault was deferred, or recovery-key workflow broke during setup.
+
+  - id: application_firewall_on
+    title: Application firewall is on
+    check: Assert that the macOS application firewall is enabled.
+    rationale: The application firewall is a useful tripwire for software that unexpectedly wants to listen. Turning it off should be a conscious exception, not a preference-pane shrug.
+    drift_signal: User override, troubleshooting residue, or a profile that failed to apply cleanly.
+
+  - id: gatekeeper_enabled
+    title: Gatekeeper is enabled
+    check: Assert that Gatekeeper assessment is enabled for downloaded applications.
+    rationale: Gatekeeper is not perfect, but disabling it changes the software trust story immediately. That is exactly the kind of drift this POC should catch.
+    drift_signal: A user installed software outside the normal path and left the security control disabled afterward.
+
+  - id: local_admins_baseline
+    title: Local admin accounts match baseline
+    check: Assert that local administrator accounts match the approved macOS baseline.
+    rationale: Admin drift on macOS is usually quiet until it matters. This control keeps workstation convenience from becoming standing privilege.
+    drift_signal: A temporary admin grant, migration artifact, or unmanaged local account persisted past its need.
+
+  - id: screen_lock_enforced
+    title: Screen lock is enforced
+    check: Assert that macOS requires a password shortly after sleep or screen saver begins.
+    rationale: This is basic, but basic controls fail in real fleets. The posture model should notice when the physical-access story gets weaker.
+    drift_signal: User override, missing configuration profile, or a workstation enrolled without the expected posture policy.
+
+  - id: security_updates_current
+    title: Security updates are current
+    check: Assert that macOS security updates are installed within the approved lab window.
+    rationale: Patch freshness matters most when the endpoint is also a daily driver. A posture-only macOS enrollment still needs to prove it is not stale.
+    drift_signal: Update deferral, failed MDM profile, insufficient disk space, or a user postponing restarts indefinitely.
+
+  - id: osquery_agent_healthy
+    title: osquery agent is healthy
+    check: Assert that osquery is installed, enrolled, and reporting recently.
+    rationale: Fleet cannot validate what has stopped checking in. This control separates a clean endpoint from a silent one.
+    drift_signal: Agent crash, enrollment failure, network block, or a local uninstall.
+
+  - id: sip_enabled
+    title: System Integrity Protection is enabled
+    check: Assert that System Integrity Protection is enabled.
+    rationale: SIP is one of the macOS controls that should almost never be off on a normal workstation. A failure deserves human attention, not a shrug.
+    drift_signal: Low-level troubleshooting, unsupported tooling, or recovery-mode changes that were never put back.
+
+linux:
+  - id: sshd_permit_root_login_no
+    title: sshd PermitRootLogin is no
+    check: Assert that sshd configuration prevents direct root login.
+    rationale: Direct root SSH removes accountability and makes brute-force outcomes worse. The lab should require a named user and sudo trail.
+    drift_signal: Legacy admin habit, copied sample config, or an emergency access change that became permanent.
+
+  - id: sshd_password_authentication_no
+    title: sshd PasswordAuthentication is no
+    check: Assert that sshd does not permit password authentication.
+    rationale: Key-based SSH is not fancy; it is the minimum sane default for a developer Linux endpoint. Password SSH is where lazy access patterns go to multiply.
+    drift_signal: A convenience change, cloud-image default, or developer workaround reopened password-based remote access.
+
+  - id: host_firewall_active
+    title: ufw or nftables is active
+    check: Assert that ufw, nftables, or the approved host firewall mechanism is active.
+    rationale: Developer boxes run services by accident. A local firewall keeps accidental listeners from becoming lab-wide invitations.
+    drift_signal: Firewall disabled during debugging, base image drift, or container networking changes that weakened local filtering.
+
+  - id: unattended_upgrades_enabled
+    title: unattended-upgrades is enabled
+    check: Assert that unattended security upgrades are enabled and configured for the approved repositories.
+    rationale: Linux endpoints do not patch themselves because we admire them from across the room. This control checks whether the boring maintenance path exists.
+    drift_signal: Package baseline drift, disabled timers, or a developer image that skipped endpoint hardening.
+
+  - id: sudoers_baseline
+    title: sudoers matches baseline
+    check: Assert that sudoers files and sudo-capable groups match the approved baseline with no unexpected entries.
+    rationale: Sudo drift is local admin drift wearing a different hat. It deserves the same suspicion as extra Administrators membership on Windows.
+    drift_signal: Temporary privilege grants, hand-edited sudoers files, or automation that wrote a broader rule than intended.
+
+  - id: no_world_writable_risky_paths
+    title: No world-writable files exist in risky paths
+    check: Assert that risky system paths do not contain unexpected world-writable files or directories.
+    rationale: World-writable paths in the wrong place turn local bugs into persistence and privilege problems. This check catches sloppy installers and worse.
+    drift_signal: Bad package install, developer chmod shortcut, or an application creating unsafe writable locations.
+
+  - id: package_updates_current
+    title: Package updates are current
+    check: Assert that available security updates are within the approved lab window.
+    rationale: Patch age is a clean input to risk scoring because it changes exploitability without needing drama. Old packages on a dev endpoint are not subtle.
+    drift_signal: Disabled update checks, stale package metadata, held packages, or ignored reboot requirements.
+
+  - id: audit_logging_present
+    title: auditd or equivalent logging is present
+    check: Assert that auditd or the approved equivalent endpoint logging service is installed and active.
+    rationale: Linux investigations need process and auth history, not just vibes in syslog. If this is missing, response quality drops hard.
+    drift_signal: Minimal image build, service failure, or logging removed to quiet noisy development workloads.

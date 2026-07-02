@@ -1,0 +1,11 @@
+finding_id,endpoint,cve,cvss,epss,kev,exploit_available,arcane_context_score,arcane_context_note
+F-001,win-user-01,CVE-2023-38831,7.8,0.94,true,weaponized,0.90,"actively used by multiple ransomware affiliates for initial access; fresh corroboration"
+F-002,win-dev-01,CVE-2023-38831,7.8,0.94,true,weaponized,0.90,"actively used by multiple ransomware affiliates for initial access; fresh corroboration"
+F-003,win-legacy-01,CVE-2021-40444,8.8,0.86,true,weaponized,0.82,"legacy browser-adjacent handling still makes this a practical foothold"
+F-004,win-legacy-01,CVE-2020-0796,10.0,0.08,false,poc,0.36,"scary paper score but the isolated subnet trims the obvious path"
+F-005,ubuntu-dev-01,CVE-2024-3094,10.0,0.02,false,none,0.66,"supply-chain blast radius matters even without broad endpoint exploitation"
+F-006,mac-user-01,CVE-2023-4863,8.8,0.74,true,weaponized,0.68,"image parsing bugs land where creative users actually spend the day"
+F-007,ubuntu-dev-01,CVE-2024-6387,8.1,0.32,false,poc,0.47,"SSH exposure makes the proof of concept worth watching"
+F-008,win-dev-01,CVE-2023-23397,9.8,0.96,true,weaponized,0.86,"credential theft from mail clients is worse on a box with repo access"
+F-009,win-user-01,CVE-2024-21412,8.1,0.73,true,weaponized,0.79,"user-click path is boring until SmartScreen is the thing that fails"
+F-010,mac-user-01,CVE-2021-30860,7.8,0.49,true,weaponized,0.52,"old but still a useful reminder that document preview chains age badly"
