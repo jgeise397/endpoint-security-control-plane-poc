@@ -1,0 +1,308 @@
+---
+# Intent: Keep the Windows host firewall enabled so endpoint segmentation still exists on the box.
+# Drift: Windows Security Center reports the firewall feature as anything other than healthy.
+apiVersion: v1
+kind: policy
+spec:
+  name: Windows Firewall is enabled
+  query: |
+    -- windows_security_center exposes each area as its own column (Good/Poor/Snoozed), not feature/health rows.
+    SELECT 1
+    FROM windows_security_center
+    WHERE lower(firewall) = 'good'
+    LIMIT 1;
+  description: >
+    The host firewall is the last local boundary when network assumptions are wrong. A failure usually
+    means troubleshooting or unmanaged software weakened the endpoint baseline.
+  resolution: >
+    Re-enable Windows Firewall for the active profile, confirm the endpoint has no approved exception,
+    and remove or document the change that disabled it.
+  platform: windows
+  critical: false
+
+---
+# Intent: Keep Defender real-time protection enabled and visible to Windows Security Center.
+# Drift: Antivirus health is not good or policy/local registry values disable real-time monitoring.
+apiVersion: v1
+kind: policy
+spec:
+  name: Microsoft Defender real-time protection is on
+  query: |
+    SELECT 1
+    WHERE EXISTS (
+      SELECT 1
+      FROM services
+      WHERE name = 'WinDefend'
+        AND status = 'RUNNING'
+    )
+      AND EXISTS (
+        SELECT 1
+        FROM windows_security_center
+        WHERE lower(antivirus) = 'good'
+      )
+      AND NOT EXISTS (
+        SELECT 1
+        FROM registry
+        WHERE (
+          path = 'HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows Defender\\Real-Time Protection\\DisableRealtimeMonitoring'
+          OR (
+            path = 'HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows Defender\\Real-Time Protection'
+            AND name = 'DisableRealtimeMonitoring'
+          )
+          OR path = 'HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\Real-Time Protection\\DisableRealtimeMonitoring'
+          OR (
+            path = 'HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\Real-Time Protection'
+            AND name = 'DisableRealtimeMonitoring'
+          )
+        )
+          AND name = 'DisableRealtimeMonitoring'
+          AND lower(data) IN ('1', '0x1', '0x00000001')
+      );
+  description: >
+    Real-time malware protection should not depend on local discretion. If this fails, something with
+    enough authority has degraded the primary Windows protection layer.
+  resolution: >
+    Re-enable Microsoft Defender real-time protection, remove local or policy registry overrides, and
+    investigate whether the change was operator action, failed policy, or tampering.
+  platform: windows
+  critical: false
+
+---
+# Intent: Require BitLocker protection on the Windows OS volume.
+# Drift: The C: volume is missing, not fully encrypted, or BitLocker protection is not active.
+apiVersion: v1
+kind: policy
+spec:
+  name: BitLocker protects the OS volume
+  query: |
+    SELECT 1
+    FROM bitlocker_info
+    WHERE drive_letter = 'C:'
+      AND CAST(percentage_encrypted AS INTEGER) = 100
+      AND lower(CAST(protection_status AS TEXT)) IN ('1', 'on', 'protected', 'protection on')
+    LIMIT 1;
+  description: >
+    Disk encryption keeps endpoint loss from becoming local data loss. A failure points to rebuild,
+    suspended protection, or hardware-state drift.
+  resolution: >
+    Resume or enable BitLocker on the OS volume, escrow the recovery key through the approved workflow,
+    and verify protection status returns to active.
+  platform: windows
+  critical: false
+
+---
+# Intent: Keep standing local Administrator membership limited to the lab baseline.
+# Drift: The Administrators group contains anything other than Administrator and labadmin, or either approved member is missing.
+apiVersion: v1
+kind: policy
+spec:
+  name: Local Administrators group matches baseline
+  query: |
+    WITH admin_members(username) AS (
+      SELECT DISTINCT COALESCE(u.username, ug.uid)
+      FROM user_groups ug
+      JOIN groups g ON ug.gid = g.gid
+      LEFT JOIN users u ON u.uid = ug.uid
+      WHERE g.groupname = 'Administrators'
+    ),
+    expected(username) AS (
+      VALUES ('Administrator'), ('labadmin')
+    ),
+    unexpected(username) AS (
+      SELECT username FROM admin_members
+      EXCEPT
+      SELECT username FROM expected
+    ),
+    missing(username) AS (
+      SELECT username FROM expected
+      EXCEPT
+      SELECT username FROM admin_members
+    )
+    SELECT 1
+    WHERE NOT EXISTS (SELECT 1 FROM unexpected)
+      AND NOT EXISTS (SELECT 1 FROM missing);
+  description: >
+    Extra local admins turn short-lived support work into durable privilege. This policy keeps the lab
+    Windows administrator set pinned to its approved members.
+  resolution: >
+    Remove unapproved members from the local Administrators group, restore Administrator or labadmin if
+    either is missing, and record any required exception before re-adding access.
+  platform: windows
+  critical: false
+
+---
+# Intent: Keep RDP closed unless an endpoint-specific exception explicitly owns the exposure.
+# Drift: fDenyTSConnections is missing or set to 0 under the Terminal Server registry key.
+apiVersion: v1
+kind: policy
+spec:
+  name: Remote Desktop is disabled
+  query: |
+    SELECT 1
+    FROM registry
+    WHERE (
+      path = 'HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\Terminal Server\\fDenyTSConnections'
+      OR (
+        path = 'HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\Terminal Server'
+        AND name = 'fDenyTSConnections'
+      )
+    )
+      AND name = 'fDenyTSConnections'
+      AND lower(data) IN ('1', '0x1', '0x00000001')
+    LIMIT 1;
+  description: >
+    Remote Desktop is useful enough to become permanent by accident. The lab keeps it disabled by
+    default so remote access changes show up as posture drift.
+  resolution: >
+    Set fDenyTSConnections to 1, close any related firewall exception, and attach an approved endpoint
+    exception if RDP must remain available.
+  platform: windows
+  critical: false
+
+---
+# Intent: Preserve Sysmon telemetry for Windows process and network investigation.
+# Drift: Neither the Sysmon nor Sysmon64 service is running.
+apiVersion: v1
+kind: policy
+spec:
+  name: Sysmon service is present and running
+  query: |
+    SELECT 1
+    FROM services
+    WHERE (name IN ('Sysmon', 'Sysmon64') OR lower(display_name) LIKE 'sysmon%')
+      AND status = 'RUNNING'
+    LIMIT 1;
+  description: >
+    Sysmon gives Windows drift scenarios enough detail to reconstruct process and network activity. If
+    it is absent or stopped, the investigation trail gets thin.
+  resolution: >
+    Install or repair Sysmon, restore the approved configuration, start the service, and confirm events
+    are reaching the logging pipeline.
+  platform: windows
+  critical: false
+
+---
+# Intent: Keep the Wazuh endpoint agent installed and running for event collection.
+# Drift: The Wazuh service is not running or the installed program entry is missing.
+apiVersion: v1
+kind: policy
+spec:
+  name: Wazuh agent is present
+  query: |
+    SELECT 1
+    WHERE EXISTS (
+      SELECT 1
+      FROM services
+      WHERE (name = 'WazuhSvc' OR lower(display_name) LIKE '%wazuh%')
+        AND status = 'RUNNING'
+    )
+      AND EXISTS (
+        SELECT 1
+        FROM programs
+        WHERE lower(name) LIKE '%wazuh%agent%'
+      );
+  description: >
+    Fleet measures posture, while Wazuh preserves security-event context. Losing the agent is a
+    visibility gap that should be treated as drift, not cleanup.
+  resolution: >
+    Reinstall or repair the Wazuh agent, start WazuhSvc, and verify the endpoint checks in to the Wazuh
+    manager after the service is healthy.
+  platform: windows
+  critical: false
+
+---
+# Intent: Enforce an automatic Windows screen lock within the lab timeout window.
+# Drift: InactivityTimeoutSecs is missing, zero, or greater than 900 seconds.
+apiVersion: v1
+kind: policy
+spec:
+  name: Windows screen lock is enforced
+  query: |
+    SELECT 1
+    FROM registry
+    WHERE (
+      path = 'HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System\\InactivityTimeoutSecs'
+      OR (
+        path = 'HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System'
+        AND name = 'InactivityTimeoutSecs'
+      )
+    )
+      AND name = 'InactivityTimeoutSecs'
+      AND CAST(data AS INTEGER) > 0
+      AND CAST(data AS INTEGER) <= 900
+    LIMIT 1;
+  description: >
+    Console access still matters on lab and office endpoints. This policy checks that automatic locking
+    is enforced by machine policy instead of left to user preference.
+  resolution: >
+    Set InactivityTimeoutSecs under the machine Policies\System key to a value from 1 through 900
+    seconds and refresh local policy.
+  platform: windows
+  critical: false
+
+---
+# Intent: Keep common high-risk remote access and obsolete utility software off Windows endpoints.
+# Drift: TeamViewer, AnyDesk, UltraVNC, or a pre-23 7-Zip install appears in Programs inventory.
+apiVersion: v1
+kind: policy
+spec:
+  name: No known high-risk software is present
+  query: |
+    -- Lab denylist is illustrative; production should source this list from software-risk governance.
+    WITH denylisted AS (
+      SELECT name, version
+      FROM programs
+      WHERE lower(name) LIKE '%teamviewer%'
+        OR lower(name) LIKE '%anydesk%'
+        OR lower(name) LIKE '%ultravnc%'
+        OR (
+          lower(name) LIKE '7-zip%'
+          AND CAST(version AS INTEGER) < 23
+        )
+    )
+    SELECT 1
+    WHERE NOT EXISTS (SELECT 1 FROM denylisted);
+  description: >
+    The point is not tool shaming; it is catching software that commonly bypasses normal endpoint
+    control paths. Old utilities and remote access tools need explicit ownership.
+  resolution: >
+    Remove the unapproved software or create a documented exception with owner, endpoint scope, and
+    compensating controls before allowing it to remain installed.
+  platform: windows
+  critical: false
+
+---
+# Intent: Keep managed Windows browsers above the lab's mid-2026 version floor.
+# Drift: Chrome, Edge, or Firefox appears in Programs inventory below the pinned major-version floor.
+apiVersion: v1
+kind: policy
+spec:
+  name: Browser is not outdated
+  query: |
+    -- Lab floors are pinned for the POC; production should feed browser floors from a version service.
+    WITH outdated_browsers AS (
+      SELECT name, version
+      FROM programs
+      WHERE (
+        lower(name) LIKE '%google chrome%'
+        AND CAST(version AS INTEGER) < 150
+      )
+        OR (
+          lower(name) LIKE '%microsoft edge%'
+          AND CAST(version AS INTEGER) < 150
+        )
+        OR (
+          lower(name) LIKE '%mozilla firefox%'
+          AND CAST(version AS INTEGER) < 145
+        )
+    )
+    SELECT 1
+    WHERE NOT EXISTS (SELECT 1 FROM outdated_browsers);
+  description: >
+    Browsers are the endpoint's regular contact point with untrusted content. Falling below the lab
+    version floor usually means updates are deferred, blocked, or pinned for the wrong reason.
+  resolution: >
+    Update Chrome, Edge, or Firefox to the approved floor or newer, then investigate why browser
+    auto-update did not keep the host current.
+  platform: windows
+  critical: false

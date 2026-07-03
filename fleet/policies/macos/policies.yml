@@ -1,0 +1,221 @@
+---
+# Intent: Require FileVault on the macOS system volume.
+# Drift: disk_encryption does not report an encrypted volume.
+apiVersion: v1
+kind: policy
+spec:
+  name: FileVault is on
+  query: |
+    SELECT 1
+    FROM disk_encryption
+    WHERE CAST(encrypted AS INTEGER) = 1
+    LIMIT 1;
+  description: >
+    A macOS workstation is still an endpoint with local data worth protecting. FileVault keeps device
+    loss from turning directly into data exposure.
+  resolution: >
+    Enable FileVault, escrow the recovery key through the approved process, and confirm the encrypted
+    state is visible after the next check-in.
+  platform: darwin
+  critical: false
+
+---
+# Intent: Keep the macOS application firewall enabled.
+# Drift: alf reports global_state as disabled.
+apiVersion: v1
+kind: policy
+spec:
+  name: Application firewall is on
+  query: |
+    SELECT 1
+    FROM alf
+    WHERE CAST(global_state AS INTEGER) >= 1
+    LIMIT 1;
+  description: >
+    The application firewall is a useful signal when software unexpectedly listens for inbound traffic.
+    Turning it off should be an owned exception, not a local preference.
+  resolution: >
+    Re-enable the application firewall through MDM or local policy, then review any app-specific allow
+    rules that were added during troubleshooting.
+  platform: darwin
+  critical: false
+
+---
+# Intent: Keep Gatekeeper assessment enabled for downloaded applications.
+# Drift: gatekeeper reports assessments_enabled as 0.
+apiVersion: v1
+kind: policy
+spec:
+  name: Gatekeeper is enabled
+  query: |
+    SELECT 1
+    FROM gatekeeper
+    WHERE CAST(assessments_enabled AS INTEGER) = 1
+    LIMIT 1;
+  description: >
+    Gatekeeper is not a complete trust model, but disabling assessment changes the software intake
+    story immediately. That is exactly the sort of endpoint drift this lab should catch.
+  resolution: >
+    Re-enable Gatekeeper, remove any temporary bypass used for installation, and document a narrow
+    exception if unsigned software is still required.
+  platform: darwin
+  critical: false
+
+---
+# Intent: Keep macOS admin group membership limited to the lab baseline.
+# Drift: The admin group contains anything other than root and labadmin, or either baseline member is missing.
+# Caveat: The catalog does not define macOS approved members, so this policy uses the lab baseline documented here.
+apiVersion: v1
+kind: policy
+spec:
+  name: Local admin accounts match baseline
+  query: |
+    WITH admin_members(username) AS (
+      SELECT DISTINCT COALESCE(u.username, ug.uid)
+      FROM user_groups ug
+      JOIN groups g ON ug.gid = g.gid
+      LEFT JOIN users u ON u.uid = ug.uid
+      WHERE g.groupname = 'admin'
+    ),
+    expected(username) AS (
+      VALUES ('root'), ('labadmin')
+    ),
+    unexpected(username) AS (
+      SELECT username FROM admin_members
+      EXCEPT
+      SELECT username FROM expected
+    ),
+    missing(username) AS (
+      SELECT username FROM expected
+      EXCEPT
+      SELECT username FROM admin_members
+    )
+    SELECT 1
+    WHERE NOT EXISTS (SELECT 1 FROM unexpected)
+      AND NOT EXISTS (SELECT 1 FROM missing);
+  description: >
+    Quiet admin drift on macOS still creates standing privilege. This policy keeps convenience grants
+    from becoming the default local authority model.
+  resolution: >
+    Remove unapproved users from the admin group, restore the approved lab admin membership, and
+    capture any temporary admin need as a time-bound exception.
+  platform: darwin
+  critical: false
+
+---
+# Intent: Require password-protected screen lock shortly after sleep or screen saver starts.
+# Drift: screenlock is disabled or the grace period exceeds 300 seconds.
+# Caveat: screenlock can reflect user-context state; managed_policies is the better source of truth for strict MDM enforcement.
+apiVersion: v1
+kind: policy
+spec:
+  name: macOS screen lock is enforced
+  query: |
+    SELECT 1
+    FROM screenlock
+    WHERE CAST(enabled AS INTEGER) = 1
+      AND CAST(grace_period AS INTEGER) >= 0
+      AND CAST(grace_period AS INTEGER) <= 300
+    LIMIT 1;
+  description: >
+    Physical access is still part of the endpoint risk model. A missing or loose screen lock usually
+    means the expected profile is absent or user-controlled.
+  resolution: >
+    Reapply the screen-lock configuration profile, require a password after sleep or screen saver, and
+    set the grace period to 300 seconds or less.
+  platform: darwin
+  critical: false
+
+---
+# Intent: Ensure macOS security-update enforcement settings are managed.
+# Drift: Required Software Update managed policy keys are missing or disabled.
+# Caveat: managed_policies proves update enforcement settings, not actual patch age or whether every available update is installed.
+apiVersion: v1
+kind: policy
+spec:
+  name: Security updates are current
+  query: |
+    SELECT 1
+    WHERE EXISTS (
+      SELECT 1
+      FROM managed_policies
+      WHERE domain = 'com.apple.SoftwareUpdate'
+        AND name = 'AutomaticCheckEnabled'
+        AND lower(value) IN ('1', 'true', 'yes')
+    )
+      AND EXISTS (
+        SELECT 1
+        FROM managed_policies
+        WHERE domain = 'com.apple.SoftwareUpdate'
+          AND name = 'AutomaticDownload'
+          AND lower(value) IN ('1', 'true', 'yes')
+      )
+      AND EXISTS (
+        SELECT 1
+        FROM managed_policies
+        WHERE domain = 'com.apple.SoftwareUpdate'
+          AND name = 'CriticalUpdateInstall'
+          AND lower(value) IN ('1', 'true', 'yes')
+      )
+      AND EXISTS (
+        SELECT 1
+        FROM managed_policies
+        WHERE domain = 'com.apple.SoftwareUpdate'
+          AND name = 'ConfigDataInstall'
+          AND lower(value) IN ('1', 'true', 'yes')
+      );
+  description: >
+    Patch freshness is part of the posture story even for a read-only macOS lab endpoint. This policy
+    checks that the settings responsible for security update flow are managed on the host.
+  resolution: >
+    Reapply the Software Update configuration profile, confirm automatic checks and critical updates
+    are enabled, and verify patch status in MDM or Fleet inventory.
+  platform: darwin
+  critical: false
+
+---
+# Intent: Confirm the osquery agent running this policy has a valid configuration.
+# Drift: osquery_info reports an invalid config or lacks a valid start time.
+# Caveat: A silent or uninstalled agent cannot report its own failure; Fleet last-seen data must cover non-reporting hosts.
+apiVersion: v1
+kind: policy
+spec:
+  name: osquery agent is healthy
+  query: |
+    SELECT 1
+    FROM osquery_info
+    WHERE CAST(config_valid AS INTEGER) = 1
+      AND CAST(start_time AS INTEGER) > 0
+    LIMIT 1;
+  description: >
+    Fleet can only measure endpoints that keep checking in. This self-check separates a running,
+    configured agent from one with a local configuration problem.
+  resolution: >
+    Repair the osquery or Fleet Desktop installation, restore a valid config, and use Fleet host
+    last-seen data to investigate any endpoint that has gone silent.
+  platform: darwin
+  critical: false
+
+---
+# Intent: Keep System Integrity Protection enabled on normal macOS workstations.
+# Drift: sip_config reports any SIP protection flag as disabled.
+apiVersion: v1
+kind: policy
+spec:
+  name: System Integrity Protection is enabled
+  query: |
+    -- sip_config returns one row per flag; the master switch is config_flag='sip'. The allow_* sub-flags are
+    -- legitimately disabled (0) when SIP is healthy, so a blanket "no flag is 0" test would always fail.
+    SELECT 1
+    FROM sip_config
+    WHERE config_flag = 'sip'
+      AND CAST(enabled AS INTEGER) = 1
+    LIMIT 1;
+  description: >
+    SIP should almost never be disabled on a regular workstation. A failure means low-level changes
+    were made and need a human explanation.
+  resolution: >
+    Boot to recovery, re-enable System Integrity Protection with csrutil, and document any tool or
+    workflow that required SIP to be changed.
+  platform: darwin
+  critical: false

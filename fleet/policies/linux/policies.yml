@@ -1,0 +1,232 @@
+---
+# Intent: Prevent direct root SSH login so remote access is tied to a named user.
+# Drift: An active PermitRootLogin directive in /etc/ssh/sshd_config permits root (anything but no/prohibit-password).
+# Caveat: The osquery augeas table only evaluates a file given an explicit path= constraint, and this check reads the
+#   main sshd_config, not the sshd_config.d drop-in dir. That is where lab drift is introduced and where an operator
+#   hardens; a production check would enumerate the drop-in directory as well. Requires augeas lenses on the host and
+#   osquery started with --augeas_lenses pointing at them (set fleet-wide via agent options).
+apiVersion: v1
+kind: policy
+spec:
+  name: sshd PermitRootLogin is not enabled
+  query: |
+    SELECT 1
+    WHERE NOT EXISTS (
+      SELECT 1
+      FROM augeas
+      WHERE path = '/etc/ssh/sshd_config'
+        AND label = 'PermitRootLogin'
+        AND lower(value) NOT IN ('no', 'prohibit-password')
+    );
+  description: >
+    Direct root SSH removes user accountability and makes brute-force outcomes worse. The lab requires
+    named-user access followed by sudo when privilege is needed.
+  resolution: >
+    Set PermitRootLogin no in /etc/ssh/sshd_config, remove conflicting active entries, validate sshd
+    configuration, and reload sshd.
+  platform: linux
+  critical: false
+
+---
+# Intent: Require SSH key-based access by disabling password authentication.
+# Drift: An active PasswordAuthentication yes directive in /etc/ssh/sshd_config reopens password SSH.
+# Caveat: Same augeas path= requirement and main-file-vs-drop-in scope as the PermitRootLogin check above. On this
+#   Ubuntu image the baseline PasswordAuthentication no lives in a sshd_config.d drop-in, so the main file has no active
+#   directive and the check passes; lab drift writes an active yes line to the main file, which this flips on.
+apiVersion: v1
+kind: policy
+spec:
+  name: sshd PasswordAuthentication is not enabled
+  query: |
+    SELECT 1
+    WHERE NOT EXISTS (
+      SELECT 1
+      FROM augeas
+      WHERE path = '/etc/ssh/sshd_config'
+        AND label = 'PasswordAuthentication'
+        AND lower(value) NOT IN ('no')
+    );
+  description: >
+    Key-based SSH is the sane default for a developer Linux endpoint. Password SSH reopens a remote
+    access path that should not exist in the lab baseline.
+  resolution: >
+    Set PasswordAuthentication no in /etc/ssh/sshd_config, remove conflicting active entries, validate
+    sshd configuration, and reload sshd.
+  platform: linux
+  critical: false
+
+---
+# Intent: Keep an approved Linux host firewall service active.
+# Drift: ufw, nftables, and firewalld systemd units are all inactive or absent.
+# Caveat: This is a systemd service-state check; nftables rules loaded outside a managed service need a separate host-specific policy.
+apiVersion: v1
+kind: policy
+spec:
+  name: ufw or nftables is active
+  query: |
+    SELECT 1
+    FROM systemd_units
+    WHERE id IN ('ufw.service', 'nftables.service', 'firewalld.service')
+      AND active_state = 'active'
+    LIMIT 1;
+  description: >
+    Developer Linux hosts often listen on ports by accident. A local firewall keeps that mistake from
+    becoming broader lab exposure.
+  resolution: >
+    Start and enable the approved firewall service, restore the expected ruleset, and document any
+    endpoint that intentionally uses a different firewall mechanism.
+  platform: linux
+  critical: false
+
+---
+# Intent: Keep unattended security-upgrade plumbing installed and scheduled on the Ubuntu lab endpoint.
+# Drift: unattended-upgrades is missing or the apt daily upgrade timer is not active.
+# Caveat: This checks Debian/Ubuntu package and timer state, not the full repository allowlist or every apt configuration key.
+apiVersion: v1
+kind: policy
+spec:
+  name: unattended-upgrades is enabled
+  query: |
+    SELECT 1
+    WHERE EXISTS (
+      SELECT 1
+      FROM deb_packages
+      WHERE name = 'unattended-upgrades'
+    )
+      AND EXISTS (
+        SELECT 1
+        FROM systemd_units
+        WHERE id = 'apt-daily-upgrade.timer'
+          AND active_state = 'active'
+      );
+  description: >
+    Linux endpoints do not stay patched just because they are well-liked. This checks that the baseline
+    unattended upgrade mechanism exists and is scheduled.
+  resolution: >
+    Install unattended-upgrades, enable apt-daily-upgrade.timer, restore the approved apt configuration,
+    and verify the endpoint receives security updates.
+  platform: linux
+  critical: false
+
+---
+# Intent: Keep sudo-capable group membership limited to the lab baseline.
+# Drift: sudo or wheel contains anyone other than labadmin, or labadmin is missing from sudo-capable membership.
+# Caveat: This checks sudo-capable group membership; osquery SQL does not safely prove all sudoers file semantics without a host-specific parser policy.
+apiVersion: v1
+kind: policy
+spec:
+  name: sudoers matches baseline
+  query: |
+    WITH sudo_members(username) AS (
+      SELECT DISTINCT COALESCE(u.username, ug.uid)
+      FROM user_groups ug
+      JOIN groups g ON ug.gid = g.gid
+      LEFT JOIN users u ON u.uid = ug.uid
+      WHERE g.groupname IN ('sudo', 'wheel')
+    ),
+    expected(username) AS (
+      VALUES ('labadmin')
+    ),
+    unexpected(username) AS (
+      SELECT username FROM sudo_members
+      EXCEPT
+      SELECT username FROM expected
+    ),
+    missing(username) AS (
+      SELECT username FROM expected
+      EXCEPT
+      SELECT username FROM sudo_members
+    )
+    SELECT 1
+    WHERE NOT EXISTS (SELECT 1 FROM unexpected)
+      AND NOT EXISTS (SELECT 1 FROM missing);
+  description: >
+    Sudo drift is local administrator drift with a different interface. The lab baseline keeps durable
+    privilege narrow and visible.
+  resolution: >
+    Remove unapproved users from sudo-capable groups, restore labadmin if missing, and review sudoers
+    files manually before approving any broader privilege rule.
+  platform: linux
+  critical: false
+
+---
+# Intent: Keep high-value system paths from being writable by every local user.
+# Drift: A checked system directory has a world-writable permission bit.
+# Caveat: Portable osquery cannot recursively prove every descendant file without configured file integrity paths; this checks the risky path roots.
+apiVersion: v1
+kind: policy
+spec:
+  name: No world-writable files exist in risky paths
+  query: |
+    WITH risky_paths(path) AS (
+      VALUES
+        ('/etc'),
+        ('/usr/bin'),
+        ('/usr/sbin'),
+        ('/bin'),
+        ('/sbin'),
+        ('/boot'),
+        ('/lib'),
+        ('/lib64')
+    ),
+    world_writable AS (
+      SELECT f.path, f.mode
+      FROM risky_paths r
+      JOIN file f ON f.path = r.path
+      WHERE substr(f.mode, -1) IN ('2', '3', '6', '7')
+    )
+    SELECT 1
+    WHERE NOT EXISTS (SELECT 1 FROM world_writable);
+  description: >
+    World-writable system paths turn local mistakes into persistence and privilege problems. This check
+    catches dangerous permissions on the path roots most likely to matter.
+  resolution: >
+    Remove world-writable permissions from the affected path, identify the package or script that set
+    them, and add file integrity coverage if descendants need monitoring.
+  platform: linux
+  critical: false
+
+---
+# Intent: Keep package update metadata fresh enough for the lab patch window.
+# Drift: apt update-success-stamp is missing or older than seven days.
+# Caveat: This proves recent apt metadata refresh on Debian/Ubuntu, not that there are zero pending security updates.
+apiVersion: v1
+kind: policy
+spec:
+  name: Package updates are current
+  query: |
+    SELECT 1
+    FROM file
+    WHERE path = '/var/lib/apt/periodic/update-success-stamp'
+      AND CAST(mtime AS INTEGER) >= (CAST(strftime('%s', 'now') AS INTEGER) - 604800)
+    LIMIT 1;
+  description: >
+    Patch age changes endpoint risk without needing a dramatic story. Stale package metadata is a good
+    signal that normal update maintenance is not happening.
+  resolution: >
+    Run apt update, apply required security updates, clear held packages or timer failures, and confirm
+    the update-success-stamp refreshes.
+  platform: linux
+  critical: false
+
+---
+# Intent: Keep audit logging active for Linux process and auth investigation.
+# Drift: auditd.service is inactive or absent.
+apiVersion: v1
+kind: policy
+spec:
+  name: auditd or equivalent logging is present
+  query: |
+    SELECT 1
+    FROM systemd_units
+    WHERE id = 'auditd.service'
+      AND active_state = 'active'
+    LIMIT 1;
+  description: >
+    Linux response work needs process and authentication history, not just sparse syslog hints. Missing
+    audit logging lowers the quality of any later investigation.
+  resolution: >
+    Install auditd or the approved equivalent, enable and start the service, and confirm events are
+    being collected by the logging pipeline.
+  platform: linux
+  critical: false
