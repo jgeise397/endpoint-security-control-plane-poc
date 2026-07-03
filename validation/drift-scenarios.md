@@ -51,7 +51,7 @@ set "LABDRIFT_TEMP_PASSWORD="
 
 Expected telemetry:
 
-- Fleet policy `local_admins_baseline` flips to fail on the next policy run.
+- Fleet policy `Local Administrators group matches baseline` flips to fail on the next policy run.
 - The first failing policy timestamp is the time-to-detect marker.
 - Windows Security event 4732 corroborates that `labdrift` was added to Administrators.
 
