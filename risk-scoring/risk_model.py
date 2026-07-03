@@ -321,12 +321,12 @@ def main() -> None:
     pair = {
         score.finding.endpoint: score
         for score in scores
-        if score.finding.cve == "CVE-2023-38831"
+        if score.finding.cve == "CVE-2022-29072"
     }
     print(f"Loaded {len(scores)} findings from {DEFAULT_CSV_PATH.name}")
     print(f"Wrote {DEFAULT_OUTPUT_PATH.name} with {len(scores)} ranked findings")
     print(
-        f"CVE-2023-38831 pair: win-user-01={pair['win-user-01'].final_score:.2f}, win-dev-01={pair['win-dev-01'].final_score:.2f}"
+        f"CVE-2022-29072 pair: win-user-01={pair['win-user-01'].final_score:.2f}, win-dev-01={pair['win-dev-01'].final_score:.2f}"
     )
 
 

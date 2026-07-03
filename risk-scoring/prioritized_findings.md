@@ -3,14 +3,14 @@
 | Rank | Finding ID | Endpoint | CVE | Final score |
 | ---: | --- | --- | --- | ---: |
 | 1 | F-008 | win-dev-01 | CVE-2023-23397 | 94.88 |
-| 2 | F-002 | win-dev-01 | CVE-2023-38831 | 91.68 |
-| 3 | F-003 | win-legacy-01 | CVE-2021-40444 | 86.22 |
-| 4 | F-001 | win-user-01 | CVE-2023-38831 | 85.08 |
-| 5 | F-006 | mac-user-01 | CVE-2023-4863 | 81.18 |
-| 6 | F-009 | win-user-01 | CVE-2024-21412 | 80.26 |
-| 7 | F-010 | mac-user-01 | CVE-2021-30860 | 72.98 |
-| 8 | F-007 | ubuntu-dev-01 | CVE-2024-6387 | 46.66 |
-| 9 | F-005 | ubuntu-dev-01 | CVE-2024-3094 | 38.60 |
+| 2 | F-003 | win-legacy-01 | CVE-2021-40444 | 86.22 |
+| 3 | F-006 | mac-user-01 | CVE-2023-4863 | 81.18 |
+| 4 | F-009 | win-user-01 | CVE-2024-21412 | 80.26 |
+| 5 | F-010 | mac-user-01 | CVE-2021-30860 | 72.98 |
+| 6 | F-007 | ubuntu-dev-01 | CVE-2024-6387 | 46.66 |
+| 7 | F-005 | ubuntu-dev-01 | CVE-2024-3094 | 38.60 |
+| 8 | F-002 | win-dev-01 | CVE-2022-29072 | 37.28 |
+| 9 | F-001 | win-user-01 | CVE-2022-29072 | 30.68 |
 | 10 | F-004 | win-legacy-01 | CVE-2020-0796 | 27.12 |
 
 ## Factor Breakdown
@@ -34,26 +34,7 @@ Context note: credential theft from mail clients is worse on a box with repo acc
 | controls |  |  | -0.00 |
 | final_score |  |  | 94.88 |
 
-### 2. F-002 - win-dev-01 - CVE-2023-38831
-
-Context note: actively used by multiple ransomware affiliates for initial access; fresh corroboration
-
-| Line item | Normalized value | Weight | Contribution |
-| --- | ---: | ---: | ---: |
-| cvss | 0.780 | 16.0 | 12.48 |
-| epss | 0.940 | 20.0 | 18.80 |
-| kev | 1.000 | 22.0 | 22.00 |
-| exploit_available | 1.000 | 14.0 | 14.00 |
-| arcane_context | 0.900 | 10.0 | 9.00 |
-| criticality | 1.000 | 7.0 | 7.00 |
-| exposure | 0.800 | 6.0 | 4.80 |
-| persona_risk | 0.720 | 5.0 | 3.60 |
-| base_score |  |  | 91.68 |
-| legacy_multiplier | x1.00 |  | 91.68 |
-| controls |  |  | -0.00 |
-| final_score |  |  | 91.68 |
-
-### 3. F-003 - win-legacy-01 - CVE-2021-40444
+### 2. F-003 - win-legacy-01 - CVE-2021-40444
 
 Context note: legacy browser-adjacent handling still makes this a practical foothold
 
@@ -75,26 +56,7 @@ Context note: legacy browser-adjacent handling still makes this a practical foot
 | control:reduced_local_admin |  |  | -5.00 |
 | final_score |  |  | 86.22 |
 
-### 4. F-001 - win-user-01 - CVE-2023-38831
-
-Context note: actively used by multiple ransomware affiliates for initial access; fresh corroboration
-
-| Line item | Normalized value | Weight | Contribution |
-| --- | ---: | ---: | ---: |
-| cvss | 0.780 | 16.0 | 12.48 |
-| epss | 0.940 | 20.0 | 18.80 |
-| kev | 1.000 | 22.0 | 22.00 |
-| exploit_available | 1.000 | 14.0 | 14.00 |
-| arcane_context | 0.900 | 10.0 | 9.00 |
-| criticality | 0.600 | 7.0 | 4.20 |
-| exposure | 0.500 | 6.0 | 3.00 |
-| persona_risk | 0.320 | 5.0 | 1.60 |
-| base_score |  |  | 85.08 |
-| legacy_multiplier | x1.00 |  | 85.08 |
-| controls |  |  | -0.00 |
-| final_score |  |  | 85.08 |
-
-### 5. F-006 - mac-user-01 - CVE-2023-4863
+### 3. F-006 - mac-user-01 - CVE-2023-4863
 
 Context note: image parsing bugs land where creative users actually spend the day
 
@@ -113,7 +75,7 @@ Context note: image parsing bugs land where creative users actually spend the da
 | controls |  |  | -0.00 |
 | final_score |  |  | 81.18 |
 
-### 6. F-009 - win-user-01 - CVE-2024-21412
+### 4. F-009 - win-user-01 - CVE-2024-21412
 
 Context note: user-click path is boring until SmartScreen is the thing that fails
 
@@ -132,7 +94,7 @@ Context note: user-click path is boring until SmartScreen is the thing that fail
 | controls |  |  | -0.00 |
 | final_score |  |  | 80.26 |
 
-### 7. F-010 - mac-user-01 - CVE-2021-30860
+### 5. F-010 - mac-user-01 - CVE-2021-30860
 
 Context note: old but still a useful reminder that document preview chains age badly
 
@@ -151,7 +113,7 @@ Context note: old but still a useful reminder that document preview chains age b
 | controls |  |  | -0.00 |
 | final_score |  |  | 72.98 |
 
-### 8. F-007 - ubuntu-dev-01 - CVE-2024-6387
+### 6. F-007 - ubuntu-dev-01 - CVE-2024-6387
 
 Context note: SSH exposure makes the proof of concept worth watching
 
@@ -170,7 +132,7 @@ Context note: SSH exposure makes the proof of concept worth watching
 | controls |  |  | -0.00 |
 | final_score |  |  | 46.66 |
 
-### 9. F-005 - ubuntu-dev-01 - CVE-2024-3094
+### 7. F-005 - ubuntu-dev-01 - CVE-2024-3094
 
 Context note: supply-chain blast radius matters even without broad endpoint exploitation
 
@@ -188,6 +150,44 @@ Context note: supply-chain blast radius matters even without broad endpoint expl
 | legacy_multiplier | x1.00 |  | 38.60 |
 | controls |  |  | -0.00 |
 | final_score |  |  | 38.60 |
+
+### 8. F-002 - win-dev-01 - CVE-2022-29072
+
+Context note: real lab finding: 7-Zip 21.07 inventoried by osquery; same CVE and same intel as win-user-01 - only persona/business context differs
+
+| Line item | Normalized value | Weight | Contribution |
+| --- | ---: | ---: | ---: |
+| cvss | 0.780 | 16.0 | 12.48 |
+| epss | 0.020 | 20.0 | 0.40 |
+| kev | 0.000 | 22.0 | 0.00 |
+| exploit_available | 0.500 | 14.0 | 7.00 |
+| arcane_context | 0.200 | 10.0 | 2.00 |
+| criticality | 1.000 | 7.0 | 7.00 |
+| exposure | 0.800 | 6.0 | 4.80 |
+| persona_risk | 0.720 | 5.0 | 3.60 |
+| base_score |  |  | 37.28 |
+| legacy_multiplier | x1.00 |  | 37.28 |
+| controls |  |  | -0.00 |
+| final_score |  |  | 37.28 |
+
+### 9. F-001 - win-user-01 - CVE-2022-29072
+
+Context note: real lab finding: 7-Zip 21.07 inventoried by osquery; local privesc, vendor-disputed, PoC-only, not in KEV, EPSS ~1.5% - Arcane deprioritizes as low-signal
+
+| Line item | Normalized value | Weight | Contribution |
+| --- | ---: | ---: | ---: |
+| cvss | 0.780 | 16.0 | 12.48 |
+| epss | 0.020 | 20.0 | 0.40 |
+| kev | 0.000 | 22.0 | 0.00 |
+| exploit_available | 0.500 | 14.0 | 7.00 |
+| arcane_context | 0.200 | 10.0 | 2.00 |
+| criticality | 0.600 | 7.0 | 4.20 |
+| exposure | 0.500 | 6.0 | 3.00 |
+| persona_risk | 0.320 | 5.0 | 1.60 |
+| base_score |  |  | 30.68 |
+| legacy_multiplier | x1.00 |  | 30.68 |
+| controls |  |  | -0.00 |
+| final_score |  |  | 30.68 |
 
 ### 10. F-004 - win-legacy-01 - CVE-2020-0796
 

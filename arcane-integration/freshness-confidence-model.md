@@ -1,0 +1,11 @@
+# Freshness and Confidence Model
+
+I do not treat enrichment as a yes/no sticker. Arcane records carry the fields that make the judgment auditable: `verdict`, `sources_count`, `query_count`, `first_seen`, and `last_queried`. If the model cannot tell me when it learned something and when it last checked it, I do not want it driving priority.
+
+The verdict ladder is `benign`, `low_signal`, `suspicious`, and `malicious`. A finding moves up when independent sources agree, exploitation is current, actor tradecraft lines up with the exposure, and the ATT&CK mapping explains a real path through the environment. It moves down when the signal is stale, narrow, disputed, unweaponized, or only scary because a base score looks high in isolation.
+
+CVE-2022-29072 is the example I like because it cuts against the dashboard instinct. `7-Zip 21.07 (x64)` was installed on `win-user-01` and `win-dev-01`, and CVSS 3.1 says `7.8` with `AV:L/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:H`. That is worth inventory and remediation, but not panic. Arcane marked it `low_signal` because it is not in CISA KEV, EPSS is `0.0152` at roughly `1.5%`, NVD carries a vendor dispute note, and the public exploitation picture is PoC-only with no evidence of active or weaponized use. The risk model used an `arcane_context_score` of `0.20`, which is exactly the kind of downward pressure threat intel should apply when the facts support it.
+
+RDP on `win-legacy-01` shows the opposite motion. The technique is not subtle: ATT&CK `T1021.001`, Remote Desktop Protocol, lateral movement, Windows, subtechnique of `T1021`. The host is constrained and cannot simply accept the modern endpoint baseline, so the mature response is not "patch harder." I would elevate the finding because exposed RDP is a historically important ransomware initial-access and lateral-movement vector, then force compensating controls: network isolation, inbound restriction, and RDP disabled by default.
+
+Freshness is not a footnote. At capture time, the feed corpus had last refreshed on `2026-06-07` and platform health was `degraded`. A mature workflow does not hide that because stale intel is worse than no intel. It down-weights automation, annotates the decision, and treats any confident-sounding enrichment as provisional until the feed workers catch up.

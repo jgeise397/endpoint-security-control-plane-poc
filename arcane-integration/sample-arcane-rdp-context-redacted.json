@@ -1,0 +1,47 @@
+{
+  "_note": "Sanitized/representative export for the public POC; no production data, credentials, private indicators, or live-access details are included.",
+  "id": "redacted-arcane-record-rdp-t1021-001",
+  "record_type": "arcane_context",
+  "mode": "ioc",
+  "ioc_type": "attack_technique",
+  "ioc_value": "T1021.001",
+  "finding_ref": {
+    "scenario": "RDP exposure on legacy endpoint",
+    "endpoint": "win-legacy-01"
+  },
+  "attack": [
+    {
+      "technique_id": "T1021.001",
+      "name": "Remote Desktop Protocol",
+      "tactic": "lateral-movement",
+      "platform": "Windows",
+      "is_subtechnique": true,
+      "parent": "T1021",
+      "url": "https://attack.mitre.org/techniques/T1021/001",
+      "role": "primary"
+    }
+  ],
+  "verdict": "attention",
+  "priority_effect": "elevate",
+  "exposure_context": {
+    "assessment": "RDP has historically been a top ransomware initial-access and lateral-movement vector.",
+    "legacy_constraint": "win-legacy-01 is constrained and cannot take the modern endpoint baseline."
+  },
+  "compensating_controls": [
+    "network_isolation",
+    "inbound_restriction",
+    "rdp_disabled_default"
+  ],
+  "sources_count": 1,
+  "query_count": 1,
+  "confidence": {
+    "score": 0.74,
+    "rationale": "ATT&CK mapping is direct, the platform is Windows, and the exposure is on the constrained legacy host; actor attribution is not required to elevate a lateral-movement front door."
+  },
+  "freshness": {
+    "first_seen": "2026-06-07T00:00:00Z",
+    "last_queried": "2026-06-07T00:00:00Z",
+    "feed_corpus_last_refreshed": "2026-06-07",
+    "platform_health": "degraded"
+  }
+}

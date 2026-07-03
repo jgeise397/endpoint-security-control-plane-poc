@@ -1,0 +1,60 @@
+{
+  "_note": "Sanitized/representative export for the public POC; no production data, credentials, private indicators, or live-access details are included.",
+  "id": "redacted-arcane-record-7zip-cve-2022-29072",
+  "record_type": "arcane_enrichment",
+  "mode": "ioc",
+  "ioc_type": "cve",
+  "ioc_value": "CVE-2022-29072",
+  "finding_ref": {
+    "cve": "CVE-2022-29072",
+    "app": "7-Zip 21.07",
+    "endpoints": [
+      "win-user-01",
+      "win-dev-01"
+    ]
+  },
+  "attack": [
+    {
+      "technique_id": "T1068",
+      "name": "Exploitation for Privilege Escalation",
+      "tactic": "privilege-escalation",
+      "role": "primary"
+    },
+    {
+      "technique_id": "T1203",
+      "name": "Exploitation for Client Execution",
+      "tactic": "execution",
+      "role": "secondary"
+    }
+  ],
+  "verdict": "low_signal",
+  "priority_effect": "deprioritize",
+  "arcane_context_score": 0.2,
+  "exploitation": {
+    "cvss_31": {
+      "score": 7.8,
+      "vector": "AV:L/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:H"
+    },
+    "kev": false,
+    "epss": 0.0152,
+    "epss_note": "~1.5%, ~71st percentile",
+    "exploit_maturity": "poc",
+    "vendor_disputed": true,
+    "public_exploitation": "PoC-only; no evidence of active or weaponized use."
+  },
+  "actor_context": {
+    "assessment": "No tracked actor observed actively leveraging this local privesc in the feed corpus."
+  },
+  "sources_count": 2,
+  "query_count": 1,
+  "confidence": {
+    "score": 0.62,
+    "rationale": "Technique mapping is solid; exploitation signal is low because KEV is false, EPSS is 0.0152, vendor status is disputed, and public use is PoC-only."
+  },
+  "freshness": {
+    "first_seen": "2026-06-07T00:00:00Z",
+    "last_queried": "2026-06-07T00:00:00Z",
+    "feed_corpus_last_refreshed": "2026-06-07",
+    "platform_health": "degraded"
+  }
+}

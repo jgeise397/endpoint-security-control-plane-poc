@@ -1,6 +1,6 @@
 finding_id,endpoint,cve,cvss,epss,kev,exploit_available,arcane_context_score,arcane_context_note
-F-001,win-user-01,CVE-2023-38831,7.8,0.94,true,weaponized,0.90,"actively used by multiple ransomware affiliates for initial access; fresh corroboration"
-F-002,win-dev-01,CVE-2023-38831,7.8,0.94,true,weaponized,0.90,"actively used by multiple ransomware affiliates for initial access; fresh corroboration"
+F-001,win-user-01,CVE-2022-29072,7.8,0.02,false,poc,0.20,"real lab finding: 7-Zip 21.07 inventoried by osquery; local privesc, vendor-disputed, PoC-only, not in KEV, EPSS ~1.5% - Arcane deprioritizes as low-signal"
+F-002,win-dev-01,CVE-2022-29072,7.8,0.02,false,poc,0.20,"real lab finding: 7-Zip 21.07 inventoried by osquery; same CVE and same intel as win-user-01 - only persona/business context differs"
 F-003,win-legacy-01,CVE-2021-40444,8.8,0.86,true,weaponized,0.82,"legacy browser-adjacent handling still makes this a practical foothold"
 F-004,win-legacy-01,CVE-2020-0796,10.0,0.08,false,poc,0.36,"scary paper score but the isolated subnet trims the obvious path"
 F-005,ubuntu-dev-01,CVE-2024-3094,10.0,0.02,false,none,0.66,"supply-chain blast radius matters even without broad endpoint exploitation"

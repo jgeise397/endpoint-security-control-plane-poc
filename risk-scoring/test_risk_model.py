@@ -19,13 +19,13 @@ def _scores_by_id() -> dict[str, risk_model.FindingScore]:
     }
 
 
-def test_persona_factors_separate_identical_winrar_findings() -> None:
+def test_persona_factors_separate_identical_app_findings() -> None:
     scores = _scores_by_id()
     user_score = scores["F-001"]
     dev_score = scores["F-002"]
 
     assert dev_score.final_score > user_score.final_score
-    assert dev_score.finding.cve == user_score.finding.cve == "CVE-2023-38831"
+    assert dev_score.finding.cve == user_score.finding.cve == "CVE-2022-29072"
 
     changing_factors = {"criticality", "exposure", "persona_risk"}
     identical_vuln_factors = {
