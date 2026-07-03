@@ -1,0 +1,144 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1500 640" role="img" aria-labelledby="title desc">
+  <title id="title">Endpoint security control-plane architecture</title>
+  <desc id="desc">Five lab endpoints feed Fleet/osquery and Windows Sysmon telemetry, findings flow through Wazuh, Arcane intelligence enrichment, risk scoring, reporting, and a remediation loop.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L8,4 L0,8 Z" fill="#1a1a1a"/>
+    </marker>
+    <style>
+      text {
+        font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif;
+        fill: #1a1a1a;
+      }
+      .heading {
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 1.8px;
+        text-transform: uppercase;
+      }
+      .box {
+        fill: #f4f4f2;
+        stroke: #999;
+        stroke-width: 1;
+      }
+      .accent-box {
+        fill: #eef7f7;
+        stroke: #2a7f7f;
+        stroke-width: 1;
+      }
+      .label {
+        font-size: 13px;
+        font-weight: 700;
+      }
+      .sub {
+        font-size: 12px;
+      }
+      .small {
+        font-size: 11px;
+      }
+      .line {
+        fill: none;
+        stroke: #1a1a1a;
+        stroke-width: 1;
+        marker-end: url(#arrow);
+      }
+      .line-soft {
+        fill: none;
+        stroke: #555;
+        stroke-width: 1;
+        marker-end: url(#arrow);
+      }
+      .junction {
+        fill: #1a1a1a;
+        stroke: none;
+      }
+    </style>
+  </defs>
+
+  <rect x="0" y="0" width="1500" height="640" fill="#fff"/>
+
+  <text x="70" y="54" class="heading">Lab fleet</text>
+  <text x="440" y="54" class="heading">Measurement layer</text>
+  <text x="845" y="54" class="heading">Intelligence layer</text>
+  <text x="1168" y="54" class="heading">Risk + reporting</text>
+
+  <g id="fleet">
+    <rect class="box" x="70" y="86" width="260" height="62" rx="3"/>
+    <text class="label" x="90" y="113">win-user-01</text>
+    <text class="sub" x="90" y="133">Windows · standard user</text>
+
+    <rect class="box" x="70" y="166" width="260" height="62" rx="3"/>
+    <text class="label" x="90" y="193">win-dev-01</text>
+    <text class="sub" x="90" y="213">Windows · developer</text>
+
+    <rect class="box" x="70" y="246" width="260" height="62" rx="3"/>
+    <text class="label" x="90" y="273">mac-user-01</text>
+    <text class="sub" x="90" y="293">macOS · real workstation</text>
+
+    <rect class="box" x="70" y="326" width="260" height="62" rx="3"/>
+    <text class="label" x="90" y="353">ubuntu-dev-01</text>
+    <text class="sub" x="90" y="373">Linux · developer</text>
+
+    <rect class="box" x="70" y="406" width="260" height="62" rx="3"/>
+    <text class="label" x="90" y="433">win-legacy-01</text>
+    <text class="sub" x="90" y="453">Windows · legacy, constrained</text>
+  </g>
+
+  <g id="measurement">
+    <rect class="box" x="470" y="130" width="270" height="86" rx="3"/>
+    <text class="label" x="490" y="164">Fleet / osquery</text>
+    <text class="sub" x="490" y="187">posture · inventory · policies</text>
+
+    <rect class="box" x="470" y="276" width="270" height="72" rx="3"/>
+    <text class="label" x="490" y="306">Sysmon</text>
+    <text class="sub" x="490" y="328">process telemetry</text>
+
+    <rect class="box" x="470" y="410" width="270" height="76" rx="3"/>
+    <text class="label" x="490" y="441">Wazuh</text>
+    <text class="sub" x="490" y="463">event pipeline · alerting</text>
+  </g>
+
+  <g id="intelligence">
+    <circle class="junction" cx="865" cy="266" r="7"/>
+    <text class="small" x="842" y="246">findings</text>
+
+    <rect class="accent-box" x="930" y="176" width="260" height="128" rx="3"/>
+    <text class="label" x="950" y="211">Arcane</text>
+    <text class="sub" x="950" y="235">threat intel enrichment</text>
+    <text class="sub" x="950" y="260">ATT&amp;CK · actor context</text>
+    <text class="sub" x="950" y="284">freshness · confidence</text>
+  </g>
+
+  <g id="risk-reporting">
+    <rect class="box" x="1240" y="166" width="220" height="78" rx="3"/>
+    <text class="label" x="1260" y="199">risk_model.py</text>
+    <text class="sub" x="1260" y="222">auditable weighted scoring</text>
+
+    <rect class="box" x="1240" y="326" width="220" height="104" rx="3"/>
+    <text class="label" x="1260" y="360">prioritized findings</text>
+    <text class="sub" x="1260" y="383">exception workflow</text>
+    <text class="sub" x="1260" y="406">reports</text>
+  </g>
+
+  <path class="line-soft" d="M330 117 H400 V154 H470"/>
+  <path class="line-soft" d="M330 197 H392 V166 H470"/>
+  <path class="line-soft" d="M330 277 H400 V178 H470"/>
+  <path class="line-soft" d="M330 357 H400 V190 H470"/>
+  <path class="line-soft" d="M330 437 H392 V202 H470"/>
+
+  <path class="line-soft" d="M330 117 H420 V292 H470"/>
+  <path class="line-soft" d="M330 197 H412 V304 H470"/>
+  <path class="line-soft" d="M330 437 H420 V324 H470"/>
+
+  <path class="line" d="M605 348 V410"/>
+
+  <path class="line" d="M740 173 H800 V252 H856"/>
+  <path class="line" d="M740 448 H800 V280 H856"/>
+  <path class="line" d="M872 266 H930"/>
+  <path class="line" d="M872 266 H1178 V205 H1240"/>
+  <path class="line" d="M1190 240 H1214 V205 H1240"/>
+  <path class="line" d="M1350 244 V326"/>
+
+  <path class="line" d="M1240 401 H1040 V545 H200 V468"/>
+  <text class="small" x="620" y="568">remediate → re-validate</text>
+</svg>

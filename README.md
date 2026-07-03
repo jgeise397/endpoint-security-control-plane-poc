@@ -35,8 +35,11 @@ All validation ran on an owned, isolated lab, and the scope was approved in writ
 - [README.md](README.md) - front-door summary for a short reviewer skim.
 - [architecture.md](architecture.md) - system diagram, stack rationale, build-vs-buy position, and data flow.
 - [endpoint-fleet/](endpoint-fleet/) - endpoint personas, posture-control catalog, and the legacy exception record.
-- [reports/](reports/) - case-study draft that this repo backs.
+- [fleet/](fleet/) - the deployed policy pack per OS, first-run posture numbers recorded honestly, and console captures.
+- [validation/](validation/) - the approved validation plan, the five drift-scenario procedures, and what actually happened when they ran (including the detection gaps).
+- [arcane-integration/](arcane-integration/) - sanitized threat-intel exports and the freshness/confidence model behind the prioritization calls.
 - [risk-scoring/](risk-scoring/) - Python scoring model, sample findings, tests, and generated prioritized findings.
+- [reports/](reports/) - the case study this repo backs, as markdown and as the submitted PDF.
 - [scope-and-safety.md](scope-and-safety.md) - authorization, lab boundaries, and validation limits.
 
-The narrative version of this build — with the scenario evidence and the worked prioritization example — is the PDF case study this repo backs.
+The narrative version of this build — scenario evidence, the worked prioritization example, and the parts that didn't behave — is [reports/case-study.md](reports/case-study.md) ([PDF](reports/endpoint-security-case-study.pdf)).

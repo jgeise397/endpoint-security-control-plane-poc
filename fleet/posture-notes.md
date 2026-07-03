@@ -22,4 +22,4 @@ A few of these deserve a straight explanation rather than a remediation ticket.
 
 **auditd on Linux** is a genuine gap: the cloud image doesn't ship it, and "logging is present" should mean more than syslog. It's a real finding, not an artifact.
 
-These first-run numbers are the baseline the drift scenarios move against — see `../validation/test-results.md`.
+These first-run numbers are the baseline the drift scenarios move against — see `../validation/test-results.md`. Console captures from the live lab are in [screenshots/](screenshots/): the enrolled fleet (`E2.2-fleet-inventory-5of5.png`), the policy board with these pass/fail counts (`E7-fleet-policies-board.png`), and the Wazuh alert detail from scenario 3.1 (`E3.1b-wazuh-rule-mitre-92057.png`). Capture provenance: each frame is cropped to application content only — browser chrome and URL bars removed — and reviewed so no address outside the documented lab ranges appears in frame.
